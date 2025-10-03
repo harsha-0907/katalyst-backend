@@ -3,3 +3,4 @@ devserver.sh
 .idx/
 .env
 temp*
+__pycache__/
