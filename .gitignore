@@ -1,3 +1,5 @@
 devserver.sh
 .venv/
 .idx/
+.env
+temp*
