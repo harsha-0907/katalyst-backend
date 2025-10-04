@@ -4,7 +4,8 @@ from composio import Composio
 from composio_openai import OpenAIProvider
 from datetime import datetime
 from openai import OpenAI
-from fastapi import FastAPI, Request, Depends, Header
+from fastapi import FastAPI, Request, Depends, Body
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Annotated
 from datetime import datetime
@@ -12,6 +13,7 @@ from dotenv import load_dotenv
 from authFunctions import *
 
 load_dotenv()
+users = {}
 API_KEY = os.getenv("API_KEY")
 AUTH_CONFIG_ID = os.getenv("AUTH_CONFIG_ID")
 OPEN_API_KEY = os.getenv("OPEN_API_KEY")
@@ -35,8 +37,9 @@ app.add_middleware(
 
 @app.get("/auth/login")
 async def authUser():
-    global BACKEND_URL
+    global BACKEND_URL, users
     uId = uuid.uuid4().hex
+    users[uId] = None
     connectionRequest = authComposio.connected_accounts.initiate(
         user_id=uId,
         auth_config_id=AUTH_CONFIG_ID,
@@ -47,7 +50,8 @@ async def authUser():
     if redirectUrl:
         return {
             "statusCode": 200,
-            "url": redirectUrl
+            "url": redirectUrl,
+            "uId": uId
         }
     else:
         return {
@@ -57,19 +61,19 @@ async def authUser():
 
 @app.get("/auth/callback/{tempId}")
 async def callback(request: Request, tempId: str):
+    global users
     headers = dict(request.headers)
     queryParams = dict(request.query_params)
     
     referer = headers.get("referer", None)
     uId = queryParams.get("connectedAccountId", None)
-
     if referer == "https://accounts.google.com/" and uId is not None:
+        # To check if it is coming from google
         token = encodeJWT(tempId)
+        users[tempId] = token
 
-        return {
-            "statusCode": 200,
-            "token": token
-        }
+        response = JSONResponse(content={"message": "Redirect Successful"})
+        return response
 
     else:
         return {
@@ -77,7 +81,20 @@ async def callback(request: Request, tempId: str):
             "message": "Unable to process request"
         }
 
-@app.post("/chat")
+@app.post("/auth/creds")
+async def fetchCreds(uId: str):
+    global users
+    if uId in users:
+        token = users[uId]
+        response = JSONResponse(content={"statusCode": 200, "token": f"Bearer {token}"})
+        del(users[uId])
+        
+    else:
+        response = JSONResponse(content={"statusCode": 401, "message": "Auth Un-Successful"})
+
+    return response
+
+@app.get("/chat")
 async def chat(uId: Annotated[str, Depends(isAuthenticated)], query: str):
     if query.strip() == "":
         return {
