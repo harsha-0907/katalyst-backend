@@ -1,6 +1,7 @@
 import jwt, os, time
 from dotenv import load_dotenv
-from fastapi import HTTPException
+from fastapi import HTTPException, Header
+from typing import Annotated, Optional
 
 load_dotenv()
 
