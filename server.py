@@ -15,6 +15,7 @@ load_dotenv()
 API_KEY = os.getenv("API_KEY")
 AUTH_CONFIG_ID = os.getenv("AUTH_CONFIG_ID")
 OPEN_API_KEY = os.getenv("OPEN_API_KEY")
+BACKEND_URL = os.getenv("BACKEND_URL")
 users = {}
 origins = ["*"]
 
@@ -32,23 +33,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/auth/login")
+@app.get("/auth/login")
 async def authUser():
+    global BACKEND_URL
     uId = uuid.uuid4().hex
     connectionRequest = authComposio.connected_accounts.initiate(
         user_id=uId,
         auth_config_id=AUTH_CONFIG_ID,
         config={"auth_scheme": "OAUTH2"},
-        callback_url=F"https://8000-firebase-assignment-katalyst-1759460792100.cluster-va5f6x3wzzh4stde63ddr3qgge.cloudworkstations.dev/auth/authenticated/{uId}"
+        callback_url=f"{BACKEND_URL}/auth/callback/{uId}"
     )
     redirectUrl = connectionRequest.redirect_url
+    if redirectUrl:
+        return {
+            "statusCode": 200,
+            "url": redirectUrl
+        }
+    else:
+        return {
+            "statusCode": 500,
+            "url": "Unable to generate URL"
+        }
 
-    return {
-        "statusCode": 200,
-        "message": redirectUrl
-    }
-
-@app.get("/auth/authenticated/{tempId}")
+@app.get("/auth/callback/{tempId}")
 async def callback(request: Request, tempId: str):
     headers = dict(request.headers)
     queryParams = dict(request.query_params)
@@ -70,8 +77,8 @@ async def callback(request: Request, tempId: str):
             "message": "Unable to process request"
         }
 
-@app.get("/user")
-async def homePage(uId: Annotated[str, Depends(isAuthenticated)], query: str):
+@app.post("/chat")
+async def chat(uId: Annotated[str, Depends(isAuthenticated)], query: str):
     if query.strip() == "":
         return {
             "statusCode": 200,
@@ -217,7 +224,6 @@ async def homePage(uId: Annotated[str, Depends(isAuthenticated)], query: str):
         result_content = formatted_result.choices[0].message.content
         # print(f"GPT Response: {result_content}")
         
-        # Remove markdown code blocks if present
         result_content = result_content.strip()
         if result_content.startswith('```json'):
             result_content = result_content[7:]
