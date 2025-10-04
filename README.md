@@ -30,4 +30,6 @@ This lightweight web app connects to Google Calendar via an MCP (Model Context P
 
 <img width="1904" height="916" alt="Screenshot 2025-10-05 014830" src="https://github.com/user-attachments/assets/bf00383e-d74b-4691-9da1-12f9323faaca" />
 
+<img width="1894" height="948" alt="image" src="https://github.com/user-attachments/assets/ceeab800-330d-485b-ac7b-0ca6f781e2c9" />
+
 
