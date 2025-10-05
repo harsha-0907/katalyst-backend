@@ -72,7 +72,7 @@ async def callback(request: Request, tempId: str):
         token = encodeJWT(tempId)
         users[tempId] = token
 
-        response = JSONResponse(content={"message": "Redirect Successful"})
+        response = JSONResponse(content={"message": "Redirect Successful. Please close this tab to continue"})
         return response
 
     else:
